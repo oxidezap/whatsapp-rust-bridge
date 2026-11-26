@@ -716,6 +716,7 @@ classify! {
     // malformed response is the server's doing, not the caller's.
     BusinessError {
         BusinessError::InvalidUpdate(detail) => invalid_arg("update", detail.to_string()),
+        BusinessError::CatalogVisitorTokenRequired => invalid_arg("options.catalogVisitorToken", "required for visitor catalog reads"),
         BusinessError::MalformedResponse { operation, detail } =>
             protocol_violation(format!("malformed {operation} response: {detail}")),
     }
@@ -1634,6 +1635,11 @@ mod tests {
                 )
                 .into(),
                 "invalid-argument:update",
+            ),
+            (
+                "BusinessError::CatalogVisitorTokenRequired",
+                BusinessError::CatalogVisitorTokenRequired.into(),
+                "invalid-argument:options.catalogVisitorToken",
             ),
             (
                 "BusinessError::MalformedResponse",

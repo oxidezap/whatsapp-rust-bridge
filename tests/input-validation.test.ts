@@ -143,18 +143,19 @@ describe("a well-formed parameter still crosses", () => {
   test("the valid shapes reach the core rather than being rejected here", async () => {
     const client = await offlineClient();
     try {
-      // Each of these is the correct shape, so it must get past deserialization
-      // and stop at the connection instead.
+      // Valid input reaches the core's connection or visitor-token checks.
       const chatState = await rejection(client.sendChatState(CHAT, "composing"));
       expect(chatState.kind).not.toBe("invalid-argument");
 
       const options = await rejection(
         client.getCollections(CHAT, { after: "cursor-1", itemLimit: 3 })
       );
-      expect(options.kind).toBe("not-connected");
+      expect(options.kind).toBe("invalid-argument");
+      expect(options.message).toContain("options.catalogVisitorToken");
 
       const omitted = await rejection(client.getCollections(CHAT));
-      expect(omitted.kind).toBe("not-connected");
+      expect(omitted.kind).toBe("invalid-argument");
+      expect(omitted.message).toContain("options.catalogVisitorToken");
 
       const keys = await rejection(
         client.readMessages([{ remoteJid: CHAT, id: "MSG1" }])

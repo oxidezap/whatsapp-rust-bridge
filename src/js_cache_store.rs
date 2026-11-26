@@ -134,6 +134,38 @@ impl CacheStore for JsCacheStoreAdapter {
 mod generated_host_callback_tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    async fn callback_failures_keep_their_messages_and_sources() {
+        for (callback, message) in [
+            (
+                r#"(() => {const f=()=>{throw new Error("cache sync failure")};return {get:f,set:f,delete:f,clear:f}})()"#,
+                "cache sync failure",
+            ),
+            (
+                r#"(() => {const f=()=>Promise.reject(new Error("cache async failure"));return {get:f,set:f,delete:f,clear:f}})()"#,
+                "cache async failure",
+            ),
+        ] {
+            let value = js_sys::eval(callback).unwrap();
+            let adapter = JsCacheStoreAdapter::from_js(&value).unwrap();
+            let errors = [
+                adapter.get("namespace", "key").await.err().unwrap(),
+                adapter
+                    .set("namespace", "key", b"value", None)
+                    .await
+                    .err()
+                    .unwrap(),
+                adapter.delete("namespace", "key").await.err().unwrap(),
+                adapter.clear("namespace").await.err().unwrap(),
+            ];
+            for error in errors {
+                let source = std::error::Error::source(&error).unwrap();
+                assert!(source.to_string().contains(message), "{source}");
+            }
+        }
+    }
+
     #[test]
     fn registration_keeps_getter_order_and_required_throw_identity() {
         let value=js_sys::eval(r#"(() => { const reads=[], obj={reads};

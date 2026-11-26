@@ -2,10 +2,8 @@
  * The business catalog domain: catalog, collections, orders, the profile delta
  * and the cover photo.
  *
- * CI has no mock server, so no response body is observed here. What these cover
- * is what needs no peer: each call reaches the core, the option and delta
- * shapes cross intact, and — the one that matters most — money is typed so it
- * cannot lose precision on the way out.
+ * Visitor catalog requests use an in-process HTTP fixture. The remaining calls
+ * check input validation and typed results without a connected peer.
  */
 
 import { describe, test, expect, beforeAll } from "bun:test";
@@ -37,12 +35,53 @@ async function rejection(promise: Promise<unknown>): Promise<Error & { kind?: st
 const BIZ = "5511999999999@s.whatsapp.net";
 
 describe("catalog reads", () => {
+  test("visitor tokens and options reach the catalog HTTP request", async () => {
+    type RequestBody = {
+      access_token: string;
+      variables: { request: { product_catalog?: { limit: string }; collections?: { collection_limit: string } } };
+    };
+    const requests: Array<{ url: string; body: RequestBody }> = [];
+    const client = await createWhatsAppClient(
+      { connect() {}, send() {}, disconnect() {} },
+      {
+        async execute(url, _method, _headers, body) {
+          requests.push({ url, body: JSON.parse(new TextDecoder().decode(body!)) });
+          return {
+            statusCode: 200,
+            body: new TextEncoder().encode(JSON.stringify({
+              data: {
+                xwa_product_catalog_get_product_catalog: {
+                  product_catalog: { products: [], paging: {} },
+                },
+                xwa_product_catalog_get_collections: { collections: [], paging: {} },
+              },
+            })),
+          };
+        },
+      }
+    );
+    try {
+      const options = { catalogVisitorToken: "visitor-token", after: "cursor-1" };
+      const catalog = await client.getCatalog(BIZ, { ...options, limit: 5 });
+      const collections = await client.getCollections(BIZ, { ...options, collectionLimit: 3 });
+      expect(catalog.products).toEqual([]);
+      expect(collections.collections).toEqual([]);
+      expect(requests).toHaveLength(2);
+      for (const request of requests) {
+        expect(request.url).toBe("https://graph.whatsapp.com/graphql/catalog");
+        expect(request.body.access_token).toBe("visitor-token");
+      }
+      expect(requests[0].body.variables.request.product_catalog?.limit).toBe("5");
+      expect(requests[1].body.variables.request.collections?.collection_limit).toBe("3");
+    } finally {
+      client.free();
+    }
+  }, 20000);
+
   test("every read reaches the core", async () => {
     const client = await offlineClient();
     try {
       const calls: Array<[string, Promise<unknown>]> = [
-        ["getCatalog", client.getCatalog(BIZ)],
-        ["getCollections", client.getCollections(BIZ)],
         ["getOrder", client.getOrder(BIZ, "ORDER1", "TOKEN1")],
         ["removeBusinessCoverPhoto", client.removeBusinessCoverPhoto("fbid-1")],
       ];
@@ -56,11 +95,7 @@ describe("catalog reads", () => {
     }
   }, 30000);
 
-  // Deliberately narrow: offline, both calls stop at the connection gate before
-  // the options are read, so this shows the option objects are accepted and
-  // deserialize — not that any field reaches the query. Proving that needs a
-  // peer, and none runs in CI.
-  test("an options object is accepted without changing where the call stops", async () => {
+  test("visitor reads require a nonempty token", async () => {
     const client = await offlineClient();
     try {
       const withOptions = await rejection(
@@ -72,12 +107,14 @@ describe("catalog reads", () => {
           allowShopSource: false,
         })
       );
-      expect(withOptions.kind).toBe("not-connected");
+      expect(withOptions.kind).toBe("invalid-argument");
+      expect(withOptions.message).toContain("options.catalogVisitorToken");
 
       const collections = await rejection(
-        client.getCollections(BIZ, { collectionLimit: 3, itemLimit: 4, after: "cursor-2" })
+        client.getCollections(BIZ, { collectionLimit: 3, itemLimit: 4, after: "cursor-2", catalogVisitorToken: " " })
       );
-      expect(collections.kind).toBe("not-connected");
+      expect(collections.kind).toBe("invalid-argument");
+      expect(collections.message).toContain("options.catalogVisitorToken");
     } finally {
       client.free();
     }

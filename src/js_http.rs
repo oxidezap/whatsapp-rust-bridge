@@ -75,6 +75,31 @@ impl HttpClient for JsHttpClientAdapter {
 mod generated_host_callback_tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[test]
+    async fn callback_failures_keep_their_messages_and_sources() {
+        for (callback, message) in [
+            (
+                r#"({execute(){throw new Error("http sync failure")}})"#,
+                "http sync failure",
+            ),
+            (
+                r#"({execute(){return Promise.reject(new Error("http async failure"))}})"#,
+                "http async failure",
+            ),
+        ] {
+            let value = js_sys::eval(callback).unwrap();
+            let adapter = JsHttpClientAdapter::from_js(value).unwrap();
+            let error = adapter
+                .execute(HttpRequest::get("https://example.test"))
+                .await
+                .err()
+                .unwrap();
+            let source = std::error::Error::source(&error).unwrap();
+            assert!(source.to_string().contains(message), "{source}");
+        }
+    }
+
     #[test]
     fn registration_keeps_getter_order_and_required_throw_identity() {
         let value=js_sys::eval(r#"(() => { const reads=[], obj={reads};
