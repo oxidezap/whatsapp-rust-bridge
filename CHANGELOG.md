@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.26.9](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.8...v0.26.9) (2026-11-26)
+
+
+### Bug Fixes
+
+* adapt bridge to the project-owned protobuf API ([#188](https://github.com/oxidezap/whatsapp-rust-bridge/issues/188)) ([6664d02](https://github.com/oxidezap/whatsapp-rust-bridge/commit/6664d02101e92dbbfa683b6d2ca135374985a7b2))
+* **deps:** adapt to SDK Unix timestamps ([#176](https://github.com/oxidezap/whatsapp-rust-bridge/issues/176)) ([542f2f0](https://github.com/oxidezap/whatsapp-rust-bridge/commit/542f2f093b67c706dd1e0296e87b7bb6dfef2758))
+* **transport:** cap queued WASM ingress bytes ([#179](https://github.com/oxidezap/whatsapp-rust-bridge/issues/179)) ([67fd421](https://github.com/oxidezap/whatsapp-rust-bridge/commit/67fd4216948cb1406b3e472d5ff09e0b5d830e1b))
+
+
+### Performance
+
+* **proto:** reuse Node UTF-8 views for larger messages ([#181](https://github.com/oxidezap/whatsapp-rust-bridge/issues/181)) ([f0d5c9f](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f0d5c9feca84c88c32a972441324a30e531998af))
+* **proto:** reuse scrubbed protobuf writer scratch on Node ([#180](https://github.com/oxidezap/whatsapp-rust-bridge/issues/180)) ([9b5ff4d](https://github.com/oxidezap/whatsapp-rust-bridge/commit/9b5ff4daf7164a632a37c9715df2312a374f7297))
+* **storage:** batch bridge backend reads ([#177](https://github.com/oxidezap/whatsapp-rust-bridge/issues/177)) ([f04612d](https://github.com/oxidezap/whatsapp-rust-bridge/commit/f04612d407ed86d3b22e6f3a762b3373b4073531))
+* **transport:** allocate ingress slots on demand ([#182](https://github.com/oxidezap/whatsapp-rust-bridge/issues/182)) ([3840823](https://github.com/oxidezap/whatsapp-rust-bridge/commit/3840823da01f86425bb9fddd4daf248ef9b5f407))
+
 ## [0.26.8](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.7...v0.26.8) (2026-11-14)
 
 
