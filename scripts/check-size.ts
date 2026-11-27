@@ -16,7 +16,8 @@ import { packedContents } from "./pack";
 // CI run 44204626051 measures 8,773,651 bytes with main merged.
 // The Node writer cache adds 342 bytes to the same shared JS build.
 // The Node reader adds 1,160 bytes to the shared JS and declarations.
-const MAX_UNPACKED_BYTES = 8_775_153;
+// The protobuf runtime saves 15,706 bytes in a paired build, preserving the existing headroom.
+const MAX_UNPACKED_BYTES = 8_759_447;
 
 const { files, unpackedSize: total } = packedContents();
 

@@ -13,8 +13,8 @@ mod tests {
     // Alias `#[test]` -> wasm_bindgen_test so these run on wasm32 via
     // `wasm-pack test --node` (the crate has no native test target).
     use wasm_bindgen_test::wasm_bindgen_test as test;
-    use whatsapp_rust::buffa::Message;
     use whatsapp_rust::wacore::noise::HandshakeUtils;
+    use whatsapp_rust::waproto::protobuf::Message;
     use whatsapp_rust::waproto::whatsapp::{self as wa, cert_chain::noise_certificate};
 
     // Structurally valid `CertChain` blob with zero-filled signatures and
@@ -45,13 +45,13 @@ mod tests {
 
         let chain = {
             let mut __fixture = wa::CertChain::default();
-            __fixture.leaf = whatsapp_rust::buffa::MessageField::some({
+            __fixture.leaf = whatsapp_rust::waproto::protobuf::MessageField::some({
                 let mut __fixture = wa::cert_chain::NoiseCertificate::default();
                 __fixture.details = Some(leaf_details_bytes);
                 __fixture.signature = Some(vec![0u8; 64]);
                 __fixture
             });
-            __fixture.intermediate = whatsapp_rust::buffa::MessageField::some({
+            __fixture.intermediate = whatsapp_rust::waproto::protobuf::MessageField::some({
                 let mut __fixture = wa::cert_chain::NoiseCertificate::default();
                 __fixture.details = Some(intermediate_details_bytes);
                 __fixture.signature = Some(vec![0u8; 64]);
