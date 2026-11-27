@@ -19,7 +19,6 @@ use js_sys::{Promise, Uint8Array};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-use whatsapp_rust::buffa::Message;
 use whatsapp_rust::wacore;
 use whatsapp_rust::wacore::appstate::hash::HashState;
 use whatsapp_rust::wacore::appstate::processor::AppStateMutationMAC;
@@ -27,6 +26,7 @@ use whatsapp_rust::wacore::store::Device;
 use whatsapp_rust::wacore::store::InMemoryBackend;
 use whatsapp_rust::wacore::store::error::Result;
 use whatsapp_rust::wacore::store::traits::*;
+use whatsapp_rust::waproto::protobuf::Message;
 
 // ---------------------------------------------------------------------------
 // Store name constants
@@ -1788,7 +1788,7 @@ pub(crate) struct DeviceAccountError {
     pub store: &'static str,
     pub key: &'static str,
     #[source]
-    pub source: whatsapp_rust::buffa::DecodeError,
+    pub source: whatsapp_rust::waproto::protobuf::DecodeError,
 }
 
 fn js_err_to_store_err(context: &'static str, e: JsValue) -> wacore::store::error::StoreError {

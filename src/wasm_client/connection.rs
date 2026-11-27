@@ -422,7 +422,7 @@ mod run_completion_tests {
         use whatsapp_rust::wacore::handshake::HandshakeError as N;
 
         let decode = noise_handshake_failure_to_result(&N::ProtoDecode(
-            whatsapp_rust::buffa::DecodeError::UnexpectedEof,
+            whatsapp_rust::waproto::protobuf::DecodeError::UnexpectedEof,
         ));
         let payload = serde_json::to_value(&decode).expect("serializes");
         assert_eq!(payload["kind"], "proto-decode");
