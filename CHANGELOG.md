@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.10](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.9...v0.26.10) (2026-11-27)
+
+
+### Bug Fixes
+
+* **deps:** adopt the zero protobuf runtime ([#190](https://github.com/oxidezap/whatsapp-rust-bridge/issues/190)) ([8cbfa65](https://github.com/oxidezap/whatsapp-rust-bridge/commit/8cbfa653c6bdf1654fc0d7b55f2a798a4517ea84))
+
 ## [0.26.9](https://github.com/oxidezap/whatsapp-rust-bridge/compare/v0.26.8...v0.26.9) (2026-11-26)
 
 
